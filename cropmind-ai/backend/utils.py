@@ -10,19 +10,29 @@ except ImportError:
     import tensorflow.keras as keras
 
 # =====================================================================
-# SYSTEM-WIDE FIX: Intercept and fix InputLayer batch_shape mismatch
+# SYSTEM-WIDE FIX: Dynamic v3 config sanitizer for legacy tf_keras
 # =====================================================================
-original_input_layer_init = keras.layers.InputLayer.__init__
+original_from_config = keras.engine.base_layer.Layer.from_config
 
-def patched_input_layer_init(self, *args, **kwargs):
-    # If batch_shape is passed, convert it safely to input_shape
-    if 'batch_shape' in kwargs:
-        batch_shape = kwargs.pop('batch_shape')
+@classmethod
+def patched_from_config(cls, config):
+    # 1. Fix the new Keras v3 DTypePolicy serialization format
+    if 'dtype' in config and isinstance(config['dtype'], dict):
+        dtype_dict = config['dtype']
+        if dtype_dict.get('class_name') == 'DTypePolicy':
+            # Flatten to a standard string that legacy tf_keras expects
+            config['dtype'] = dtype_dict.get('config', {}).get('name', 'float32')
+
+    # 2. Fix the batch_shape vs input_shape issue for InputLayer configurations
+    if 'batch_shape' in config:
+        batch_shape = config.pop('batch_shape')
         if batch_shape and len(batch_shape) >= 4:
-            kwargs['input_shape'] = batch_shape[1:]  # Drop the None dimension
-    original_input_layer_init(self, *args, **kwargs)
+            config['input_shape'] = batch_shape[1:]
 
-keras.layers.InputLayer.__init__ = patched_input_layer_init
+    return original_from_config.__get__(None, cls)(config)
+
+# Inject our customized dynamic deserializer block
+keras.engine.base_layer.Layer.from_config = patched_from_config
 # =====================================================================
 
 # Automatically resolves the path to the model file inside the backend folder
@@ -41,7 +51,7 @@ CLASS_NAMES = [
     "Potato_Early_blight", "Potato_healthy", "Potato_Late_blight",
     "Strawberry_healthy", "Strawberry_Leaf_scorch",
     "Tomato_Bacterial_spot", "Tomato_Early_blight", "Tomato_healthy", "Tomato_Late_blight",
-    "Tomato_Leaf_Mold", "Tomato_Septoria_leaf_spot", "Tomato_Spider_mites_Two-spotted_spider_mite",
+    "Tomato_Leaf_Mold", "Tomato_Septoria_leaf_spot", "Tomato_Spider_mites_Two-vspotted_spider_mite",
     "Tomato_Target_Spot", "Tomato_Tomato_mosaic_virus", "Tomato_Tomato_Yellow_Leaf_Curl_Virus"
 ]
 
