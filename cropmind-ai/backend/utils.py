@@ -3,16 +3,32 @@ import tensorflow as tf
 from PIL import Image
 from pathlib import Path
 
-# Use the official legacy Keras wrapper to safely load Keras 2 models in TF 2.16+
+# Force the legacy tf_keras engine
 try:
     import tf_keras as keras
 except ImportError:
     import tensorflow.keras as keras
 
+# =====================================================================
+# SYSTEM-WIDE FIX: Intercept and fix InputLayer batch_shape mismatch
+# =====================================================================
+original_input_layer_init = keras.layers.InputLayer.__init__
+
+def patched_input_layer_init(self, *args, **kwargs):
+    # If batch_shape is passed, convert it safely to input_shape
+    if 'batch_shape' in kwargs:
+        batch_shape = kwargs.pop('batch_shape')
+        if batch_shape and len(batch_shape) >= 4:
+            kwargs['input_shape'] = batch_shape[1:]  # Drop the None dimension
+    original_input_layer_init(self, *args, **kwargs)
+
+keras.layers.InputLayer.__init__ = patched_input_layer_init
+# =====================================================================
+
 # Automatically resolves the path to the model file inside the backend folder
 MODEL_PATH = Path(__file__).parent / "cropmind_model.h5"
 
-# Load using the legacy engine to avoid positional argument crashes
+# Load using the legacy engine with our configuration injection patch
 MODEL = keras.models.load_model(str(MODEL_PATH), compile=False)
 
 # PlantVillage class labels in the exact alphabetical order they were trained
