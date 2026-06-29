@@ -1,7 +1,8 @@
 # ==========================================
 # STAGE 1: Build the Expo Web Frontend
 # ==========================================
-FROM node:18-alpine AS frontend-builder
+# Upgraded from node:18 to node:20 to meet Expo's modern requirements
+FROM node:20-alpine AS frontend-builder
 WORKDIR /app/frontend
 
 # Copy frontend dependency files
@@ -11,8 +12,8 @@ RUN npm ci
 # Copy frontend source code
 COPY . .
 
-# Build the static web files (generates a web-build folder)
-RUN npx expo export:web
+# FIX: Swapped deprecated export:web command with modern expo export command
+RUN npx expo export --platform web
 
 # ==========================================
 # STAGE 2: Final Production Environment
@@ -20,7 +21,7 @@ RUN npx expo export:web
 FROM python:3.10-slim AS final
 WORKDIR /app
 
-# Install Node.js runtime environment dependencies (needed to host static assets cleanly or minimal tools)
+# Install Node.js runtime environment dependencies (needed to host static assets cleanly)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
@@ -32,8 +33,8 @@ RUN pip install --no-cache-dir -r backend/requirements.txt
 # Copy the Python FastAPI source code
 COPY backend/ ./backend
 
-# Copy the compiled static frontend files from Stage 1 into a public folder
-COPY --from=frontend-builder /app/frontend/web-build ./public
+# FIX: Modern Expo saves the output into a 'dist' directory instead of 'web-build'
+COPY --from=frontend-builder /app/frontend/dist ./public
 
 # Expose the API and Web server port
 EXPOSE 8000
