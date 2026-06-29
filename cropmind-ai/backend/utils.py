@@ -29,7 +29,8 @@ def patched_from_config(cls, config):
         if batch_shape and len(batch_shape) >= 4:
             config['input_shape'] = batch_shape[1:]
 
-    return original_from_config.__get__(None, cls)(config)
+    # Safely call the original classmethod using its underlying __func__
+    return original_from_config.__func__(cls, config)
 
 # Inject our customized dynamic deserializer block
 keras.engine.base_layer.Layer.from_config = patched_from_config
@@ -51,7 +52,7 @@ CLASS_NAMES = [
     "Potato_Early_blight", "Potato_healthy", "Potato_Late_blight",
     "Strawberry_healthy", "Strawberry_Leaf_scorch",
     "Tomato_Bacterial_spot", "Tomato_Early_blight", "Tomato_healthy", "Tomato_Late_blight",
-    "Tomato_Leaf_Mold", "Tomato_Septoria_leaf_spot", "Tomato_Spider_mites_Two-vspotted_spider_mite",
+    "Tomato_Leaf_Mold", "Tomato_Septoria_leaf_spot", "Tomato_Spider_mites_Two-spotted_spider_mite",
     "Tomato_Target_Spot", "Tomato_Tomato_mosaic_virus", "Tomato_Tomato_Yellow_Leaf_Curl_Virus"
 ]
 
