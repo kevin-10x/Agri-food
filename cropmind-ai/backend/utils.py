@@ -3,27 +3,17 @@ import tensorflow as tf
 from PIL import Image
 from pathlib import Path
 
+# Use the official legacy Keras wrapper to safely load Keras 2 models in TF 2.16+
+try:
+    import tf_keras as keras
+except ImportError:
+    import tensorflow.keras as keras
+
 # Automatically resolves the path to the model file inside the backend folder
 MODEL_PATH = Path(__file__).parent / "cropmind_model.h5"
 
-# =====================================================================
-# FIX: Runtime patch to intercept Keras version mismatch serialization
-# =====================================================================
-try:
-    from keras.src.layers.core.dense import Dense
-    original_dense_init = Dense.__init__
-    
-    def patched_dense_init(self, *args, **kwargs):
-        # Dynamically pop out the conflicting key if present in the H5 config
-        kwargs.pop('quantization_config', None)
-        original_dense_init(self, *args, **kwargs)
-        
-    Dense.__init__ = patched_dense_init
-except Exception:
-    pass
-# =====================================================================
-
-MODEL = tf.keras.models.load_model(str(MODEL_PATH))
+# Load using the legacy engine to avoid positional argument crashes
+MODEL = keras.models.load_model(str(MODEL_PATH), compile=False)
 
 # PlantVillage class labels in the exact alphabetical order they were trained
 CLASS_NAMES = [
