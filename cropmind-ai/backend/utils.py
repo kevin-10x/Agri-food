@@ -7,23 +7,9 @@ from pathlib import Path
 MODEL_PATH = Path(__file__).parent / "cropmind_model.h5"
 
 # =====================================================================
-# FIX: Runtime patch to intercept Keras version mismatch serialization
+# FIX: Added compile=False to bypass structural Keras 3 version mismatch crashes
 # =====================================================================
-try:
-    from keras.src.layers.core.dense import Dense
-    original_dense_init = Dense.__init__
-    
-    def patched_dense_init(self, *args, **kwargs):
-        # Dynamically pop out the conflicting key if present in the H5 config
-        kwargs.pop('quantization_config', None)
-        original_dense_init(self, *args, **kwargs)
-        
-    Dense.__init__ = patched_dense_init
-except Exception:
-    pass
-# =====================================================================
-
-MODEL = tf.keras.models.load_model(str(MODEL_PATH))
+MODEL = tf.keras.models.load_model(str(MODEL_PATH), compile=False)
 
 # PlantVillage class labels in the exact alphabetical order they were trained
 CLASS_NAMES = [
