@@ -1,0 +1,5 @@
+{
+  "framework": "nextjs", 
+  "buildCommand": "cd cropmind-ai && npm run build",
+  "outputDirectory": "cropmind-ai/.next"
+}
