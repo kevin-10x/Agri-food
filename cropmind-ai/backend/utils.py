@@ -12,7 +12,15 @@ except ImportError:
 # =====================================================================
 # SYSTEM-WIDE FIX: Dynamic v3 config sanitizer for legacy tf_keras
 # =====================================================================
-original_from_config = keras.engine.base_layer.Layer.from_config
+# Standalone tf_keras exposes the base layer classes inside keras.src
+BaseLayerClass = getattr(keras, 'engine', None)
+if BaseLayerClass is not None:
+    BaseLayerClass = BaseLayerClass.base_layer.Layer
+else:
+    import tf_keras.src.engine.base_layer as base_layer_mod
+    BaseLayerClass = base_layer_mod.Layer
+
+original_from_config = BaseLayerClass.from_config
 
 @classmethod
 def patched_from_config(cls, config):
@@ -29,11 +37,11 @@ def patched_from_config(cls, config):
         if batch_shape and len(batch_shape) >= 4:
             config['input_shape'] = batch_shape[1:]
 
-    # Safely call the original classmethod using its underlying __func__
+    # Safely call the original classmethod using its underlying raw function
     return original_from_config.__func__(cls, config)
 
-# Inject our customized dynamic deserializer block
-keras.engine.base_layer.Layer.from_config = patched_from_config
+# Inject our customized dynamic deserializer block safely
+BaseLayerClass.from_config = patched_from_config
 # =====================================================================
 
 # Automatically resolves the path to the model file inside the backend folder
