@@ -16,8 +16,9 @@ CLASS_NAMES = [
     "Peach_Bacterial_spot", "Peach_healthy",
     "Potato_Early_blight", "Potato_healthy", "Potato_Late_blight",
     "Strawberry_healthy", "Strawberry_Leaf_scorch",
-    "Tomato_Bacterial_spot", "Tomato_Early_blight", "Tomato_healthy", "Tomato_Late_blight", "Tomato_Leaf_Mold",
-    "Tomato_Septoria_leaf_spot", "Tomato_Spider_mites_Two-spotted_spider_mite", "Tomato_Target_Spot", "Tomato_Tomato_mosaic_virus", "Tomato_Tomato_Yellow_Leaf_Curl_Virus"
+    "Tomato_Bacterial_spot", "Tomato_Early_blight", "Tomato_healthy", "Tomato_Late_blight",
+    "Tomato_Leaf_Mold", "Tomato_Septoria_leaf_spot", "Tomato_Spider_mites_Two-spotted_spider_mite",
+    "Tomato_Target_Spot", "Tomato_Tomato_mosaic_virus", "Tomato_Tomato_Yellow_Leaf_Curl_Virus"
 ]
 
 ADVICE_DATABASE = {
@@ -56,20 +57,20 @@ ADVICE_DATABASE = {
 
 def predict_disease(image_path: Path) -> dict:
     try:
-        # Open and resize the image to match MobileNet's expected dimensions
+        # 1. Open and resize the image to match MobileNet's expected dimensions (224x224)
         image = Image.open(image_path).convert("RGB").resize((224, 224))
         
-        # Normalize pixel arrays to [0, 1]
+        # 2. Normalize pixel arrays to [0, 1] as expected by the model
         img_array = np.array(image) / 255.0
         img_array = np.expand_dims(img_array, axis=0)
         
-        # Run inference
+        # 3. Run true deep learning inference instead of pixel averages
         predictions = MODEL.predict(img_array)
         highest_idx = np.argmax(predictions[0])
         
         predicted_class = CLASS_NAMES[highest_idx]
         confidence_score = float(predictions[0][highest_idx]) * 100
-
+        
         return {
             "disease": predicted_class.replace("_", " "),
             "confidence": round(confidence_score, 1),
