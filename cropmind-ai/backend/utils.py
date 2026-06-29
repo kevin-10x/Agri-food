@@ -3,33 +3,20 @@ import tensorflow as tf
 from PIL import Image
 from pathlib import Path
 
-# Force the legacy tf_keras engine
-try:
-    import tf_keras as keras
-except ImportError:
-    import tensorflow.keras as keras
+# Use regular tensorflow.keras safely
+import tensorflow.keras as keras
 
 # Register hard_silu alias to prevent deserialization error
-try:
-    from tf_keras.src.activations import hard_silu
-except ImportError:
-    # Fallback to standard tf.nn equivalent if mapping isn't cleanly exported
-    def hard_silu(x):
-        return x * tf.nn.relu6(x + 3) / 6
+def hard_silu(x):
+    return x * tf.nn.relu6(x + 3) / 6
 
 keras.utils.get_custom_objects()['hard_silu'] = hard_silu
 
 # =====================================================================
-# SYSTEM-WIDE FIX: Dynamic v3 config sanitizer for legacy tf_keras
+# SYSTEM-WIDE FIX: Dynamic v3 config sanitizer for standard keras
 # =====================================================================
-# Standalone tf_keras exposes the base layer classes inside keras.src
-BaseLayerClass = getattr(keras, 'engine', None)
-if BaseLayerClass is not None:
-    BaseLayerClass = BaseLayerClass.base_layer.Layer
-else:
-    import tf_keras.src.engine.base_layer as base_layer_mod
-    BaseLayerClass = base_layer_mod.Layer
-
+# Get the base layer class cleanly via the public API to avoid module import errors
+BaseLayerClass = keras.layers.Layer
 original_from_config = BaseLayerClass.from_config
 
 @classmethod
@@ -38,7 +25,6 @@ def patched_from_config(cls, config):
     if 'dtype' in config and isinstance(config['dtype'], dict):
         dtype_dict = config['dtype']
         if dtype_dict.get('class_name') == 'DTypePolicy':
-            # Flatten to a standard string that legacy tf_keras expects
             config['dtype'] = dtype_dict.get('config', {}).get('name', 'float32')
 
     # 2. Fix the batch_shape vs input_shape issue for InputLayer configurations
@@ -47,7 +33,7 @@ def patched_from_config(cls, config):
         if batch_shape and len(batch_shape) >= 4:
             config['input_shape'] = batch_shape[1:]
 
-    # 3. Clean out Keras 3 native attributes unrecognized by legacy tf_keras layers
+    # 3. Clean out Keras 3 native attributes unrecognized by legacy layers
     if 'quantization_config' in config:
         config.pop('quantization_config')
 
@@ -61,7 +47,7 @@ BaseLayerClass.from_config = patched_from_config
 # Automatically resolves the path to the model file inside the backend folder
 MODEL_PATH = Path(__file__).parent / "cropmind_model.h5"
 
-# Load using the legacy engine with our configuration injection patch
+# Load using the native engine with our configuration injection patch
 MODEL = keras.models.load_model(str(MODEL_PATH), compile=False)
 
 # PlantVillage class labels in the exact alphabetical order they were trained
