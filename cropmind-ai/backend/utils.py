@@ -47,10 +47,9 @@ def patched_from_config(cls, config):
         if batch_shape and len(batch_shape) >= 4:
             config['input_shape'] = batch_shape[1:]
 
-    # 3. Intercept activations pointing to 'hard_silu' mapping if present
-    if 'activation' in config and config['activation'] == 'hard_silu':
-        # Keep custom object dictionary mapping safe
-        pass
+    # 3. Clean out Keras 3 native attributes unrecognized by legacy tf_keras layers
+    if 'quantization_config' in config:
+        config.pop('quantization_config')
 
     # Safely call the original classmethod using its underlying raw function
     return original_from_config.__func__(cls, config)
