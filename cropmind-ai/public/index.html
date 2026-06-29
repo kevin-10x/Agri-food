@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CropMind AI - Smart Agriculture</title>
+    <style>
+        :root {
+            --primary: #2e7d32;
+            --primary-light: #4caf50;
+            --dark: #1b5e20;
+            --light: #f1f8e9;
+            --text: #333333;
+            --card-bg: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--light);
+            color: var(--text);
+            line-height: 1.6;
+            padding-bottom: 60px;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: white;
+            text-align: center;
+            padding: 2.5rem 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        main {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .upload-zone {
+            border: 3px dashed var(--primary-light);
+            padding: 3rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            background-color: #fafafa;
+            transition: background 0.3s ease;
+        }
+
+        .upload-zone:hover {
+            background-color: #f0f4c3;
+        }
+
+        .upload-zone p {
+            font-size: 1.2rem;
+            color: #555;
+            margin-top: 1rem;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.8rem 2rem;
+            font-size: 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 1.5rem;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background-color: var(--dark);
+        }
+
+        .preview-container {
+            margin-top: 1.5rem;
+            display: none;
+        }
+
+        #image-preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        /* Results Styling */
+        .results-section {
+            display: none;
+            text-align: left;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--light);
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .badge {
+            background-color: #e8f5e9;
+            color: var(--primary-dark);
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .advice-box {
+            background-color: #fffde7;
+            border-left: 4px solid #fbc02d;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+
+        footer {
+            text-align: center;
+            color: #777;
+            font-size: 0.9rem;
+            margin-top: 3rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🌿 CropMind AI</h1>
+        <p>Instant Crop Disease Detection & Treatment Recommendations</p>
+    </header>
+
+    <main>
+        <!-- Action Card -->
+        <div class="card">
+            <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <p>Drag & drop a crop photo here or <strong>browse</strong></p>
+                <input type="file" id="file-input" accept="image/*" onchange="previewFile()">
+            </div>
+
+            <div class="preview-container" id="preview-container">
+                <h3>Selected Leaf Image:</h3>
+                <img id="image-preview" src="" alt="Image Preview">
+                <br>
+                <button class="btn" onclick="analyzeImage()">Analyze Crop Health</button>
+            </div>
+        </div>
+
+        <!-- Results Card -->
+        <div class="card results-section" id="results-card">
+            <div class="result-header">
+                <h2>Analysis Result: <span id="disease-name" style="color: var(--primary);">Healthy Leaf</span></h2>
+                <span class="badge" id="confidence-score">91.5% Confidence</span>
+            </div>
+            <h3>Treatment & Advice:</h3>
+            <p class="advice-box" id="advice-text">
+                Crop looks healthy. Continue routine monitoring and irrigation.
+            </p>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 CropMind AI. Empowering Farmers with Intelligence.</p>
+    </footer>
+
+    <script>
+        function previewFile() {
+            const preview = document.getElementById('image-preview');
+            const file = document.getElementById('file-input').files[0];
+            const reader = new FileReader();
+
+            reader.addEventListener("load", function () {
+                preview.src = reader.result;
+                document.getElementById('preview-container').style.display = 'block';
+                document.getElementById('results-card').style.display = 'none'; // Clear old results
+            }, false);
+
+            if (file) {
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function analyzeImage() {
+            // Simulated local API Response matching your backend MVP heuristic
+            const mockResponse = {
+                "disease": "Healthy Leaf",
+                "confidence": 91.5,
+                "advice": "Crop looks healthy. Continue routine monitoring and irrigation."
+            };
+
+            // Displaying mock result details
+            document.getElementById('disease-name').innerText = mockResponse.disease;
+            document.getElementById('confidence-score').innerText = mockResponse.confidence + "% Confidence";
+            document.getElementById('advice-text').innerText = mockResponse.advice;
+
+            // Reveal the results card smoothly
+            document.getElementById('results-card').style.display = 'block';
+            document.getElementById('results-card').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
